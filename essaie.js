@@ -4,15 +4,11 @@ const http = require('http');
 const port = process.env.PORT || 3000;
 
 const server = http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end("WebSocket server running");
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end("Server is running");
 });
 
 const wss = new WebSocket.Server({ server });
-
-server.listen(port, () => {
-  console.log("Serveur lancé sur le port", port);
-});
 
 let clients = [];
 
@@ -40,4 +36,8 @@ wss.on('connection', (ws) => {
   ws.on('error', (err) => {
     console.log("Erreur socket:", err);
   });
+});
+
+server.listen(port, '0.0.0.0', () => {
+  console.log("Serveur lancé sur le port", port);
 });
