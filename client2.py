@@ -1,14 +1,15 @@
 import websocket
 import threading
 import uuid
+import time
 
-SERVER_URL =("wss://serveur-websocket.onrender.com")
+SERVER_URL = "wss://serveur-websocket-production.up.railway.app"
 CLIENT_ID = f"Client2-{uuid.uuid4().hex[:6]}"
 
 stop_event = threading.Event()
 
 def on_message(ws, message):
-    print(f"\n[{CLIENT_ID}] {message}", flush=True)
+    print(f"\n{message}\n[{CLIENT_ID}] > ", end="", flush=True)
 
 def on_error(ws, error):
     print(f"\n[{CLIENT_ID}] Erreur: {error}", flush=True)
@@ -21,7 +22,10 @@ def on_open(ws):
     print(f"[{CLIENT_ID}] Connecté au serveur", flush=True)
 
 def receive_loop(ws):
-    ws.run_forever()
+    ws.run_forever(
+        ping_interval=20,
+        ping_timeout=10
+    )
 
 def main():
     ws = websocket.WebSocketApp(
@@ -35,16 +39,23 @@ def main():
     t = threading.Thread(target=receive_loop, args=(ws,), daemon=True)
     t.start()
 
+    # laisse le temps de connexion
+    time.sleep(1)
+
     while not stop_event.is_set():
         try:
             msg = input(f"[{CLIENT_ID}] > ").strip()
+
             if not msg:
                 continue
+
             if msg.lower() in ("exit", "quit"):
                 stop_event.set()
                 ws.close()
                 break
+
             ws.send(f"{CLIENT_ID}: {msg}")
+
         except (KeyboardInterrupt, EOFError):
             stop_event.set()
             ws.close()

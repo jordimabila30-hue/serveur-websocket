@@ -3,10 +3,11 @@ const http = require('http');
 
 const port = process.env.PORT || 3000;
 
-// créer serveur HTTP
-const server = http.createServer();
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end("WebSocket server running");
+});
 
-// attacher WebSocket dessus
 const wss = new WebSocket.Server({ server });
 
 server.listen(port, () => {
@@ -32,6 +33,11 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
+    console.log("Client déconnecté");
     clients = clients.filter(c => c !== ws);
+  });
+
+  ws.on('error', (err) => {
+    console.log("Erreur socket:", err);
   });
 });
