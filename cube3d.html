@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cube 3D — contrôle souris</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #0b1020;
+        color: #e8eefc;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans",
+          "Apple Color Emoji", "Segoe UI Emoji";
+      }
+      :root {
+        --panel: rgba(13, 18, 35, 0.72);
+        --panelBorder: rgba(232, 238, 252, 0.12);
+        --muted: rgba(232, 238, 252, 0.72);
+        --text: #e8eefc;
+        --shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+        --accent: #7c5cff;
+      }
+      #hud {
+        position: fixed;
+        left: 16px;
+        top: 16px;
+        width: 340px;
+        padding: 14px;
+        border-radius: 16px;
+        background: var(--panel);
+        border: 1px solid var(--panelBorder);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: var(--shadow);
+        line-height: 1.35;
+        user-select: none;
+      }
+      #hud .title {
+        font-weight: 700;
+        margin-bottom: 10px;
+        letter-spacing: 0.2px;
+      }
+      #hud .subtitle {
+        color: var(--muted);
+        font-size: 12.5px;
+        margin-top: -6px;
+        margin-bottom: 12px;
+      }
+      #hud kbd {
+        font: inherit;
+        padding: 1px 6px;
+        border-radius: 8px;
+        background: rgba(232, 238, 252, 0.08);
+        border: 1px solid rgba(232, 238, 252, 0.12);
+      }
+      #canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        margin: 10px 0;
+      }
+      .row label {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .row .value {
+        font-size: 12px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .divider {
+        height: 1px;
+        background: rgba(232, 238, 252, 0.1);
+        margin: 12px 0;
+      }
+      .btn {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 7px 10px;
+        border-radius: 10px;
+        background: rgba(232, 238, 252, 0.08);
+        border: 1px solid rgba(232, 238, 252, 0.12);
+        color: inherit;
+        cursor: pointer;
+      }
+      .btn:hover {
+        background: rgba(232, 238, 252, 0.12);
+      }
+      .btn.primary {
+        background: rgba(124, 92, 255, 0.22);
+        border-color: rgba(124, 92, 255, 0.5);
+      }
+      .btn.primary:hover {
+        background: rgba(124, 92, 255, 0.3);
+      }
+      .btns {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      input[type="range"] {
+        width: 170px;
+      }
+      input[type="color"] {
+        width: 46px;
+        height: 28px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+      }
+      .pill {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(232, 238, 252, 0.08);
+        border: 1px solid rgba(232, 238, 252, 0.12);
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+      #status {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(13, 18, 35, 0.55);
+        border: 1px solid rgba(232, 238, 252, 0.12);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: var(--shadow);
+        font-size: 12.5px;
+        color: var(--muted);
+        max-width: 40vw;
+      }
+      #status strong {
+        color: var(--text);
+        font-weight: 650;
+      }
+      .hidden {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="hud">
+      <div class="title">Cube 3D (déplaçable)</div>
+      <div class="subtitle">Rotation / zoom / pan + vues rapides</div>
+      <div class="pill">
+        <span>Rotation: clic gauche</span>
+        <span>Pan: clic droit ou <kbd>Shift</kbd></span>
+        <span>Zoom: molette</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="row">
+        <label for="color">Couleur</label>
+        <input id="color" type="color" value="#7c5cff" />
+      </div>
+      <div class="row">
+        <label for="roughness">Roughness</label>
+        <input id="roughness" type="range" min="0" max="1" step="0.01" value="0.25" />
+      </div>
+      <div class="row">
+        <label for="metalness">Metalness</label>
+        <input id="metalness" type="range" min="0" max="1" step="0.01" value="0.15" />
+      </div>
+      <div class="row">
+        <label for="autorotate">Auto-rotate</label>
+        <input id="autorotate" type="checkbox" checked />
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="btns">
+        <button id="viewIso" class="btn primary" type="button">Vue iso</button>
+        <button id="viewFront" class="btn" type="button">Face</button>
+        <button id="viewTop" class="btn" type="button">Dessus</button>
+        <button id="reset" class="btn" type="button">Reset</button>
+        <button id="shot" class="btn" type="button">Screenshot</button>
+      </div>
+    </div>
+    <canvas id="canvas"></canvas>
+    <div id="status" class="hidden"></div>
+
+    <!--
+      Note: on utilise les scripts "classiques" (pas ES Modules) pour éviter
+      les blocages fréquents quand on ouvre le fichier en local (file://).
+    -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+      const canvas = document.getElementById("canvas");
+      const statusEl = document.getElementById("status");
+
+      function showStatus(html) {
+        statusEl.classList.remove("hidden");
+        statusEl.innerHTML = html;
+      }
+
+      if (!window.THREE) {
+        showStatus(
+          "<strong>Erreur:</strong> Three.js n'a pas chargé. Vérifie ta connexion Internet ou un blocage (adblock/pare-feu).",
+        );
+        throw new Error("Three.js not loaded");
+      }
+
+      let renderer;
+      try {
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
+      } catch (e) {
+        showStatus(
+          "<strong>WebGL indisponible.</strong> Mets à jour tes pilotes graphiques, ou teste avec un autre navigateur.",
+        );
+        throw e;
+      }
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      if (renderer.outputColorSpace !== undefined) renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color("#0b1020");
+
+      const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 200);
+      const initialCameraPos = new THREE.Vector3(3.2, 2.2, 4.2);
+      camera.position.copy(initialCameraPos);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.target.set(0, 0, 0);
+      controls.minDistance = 1.2;
+      controls.maxDistance = 30;
+      controls.enablePan = true;
+      controls.screenSpacePanning = true;
+
+      // Astuce UX : clic droit pour pan, Shift+clic gauche aussi.
+      controls.mouseButtons = {
+        LEFT: THREE.MOUSE.ROTATE,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.PAN,
+      };
+      controls.keyPanSpeed = 18;
+      controls.keys = { LEFT: "ArrowLeft", UP: "ArrowUp", RIGHT: "ArrowRight", BOTTOM: "ArrowDown" };
+
+      // Important : éviter le menu contextuel qui gêne le pan au clic droit.
+      window.addEventListener("contextmenu", (e) => e.preventDefault());
+
+      // Sol subtil pour le repère visuel.
+      const grid = new THREE.GridHelper(12, 24, 0x3c517a, 0x223255);
+      grid.position.y = -1.2;
+      grid.material.transparent = true;
+      grid.material.opacity = 0.35;
+      scene.add(grid);
+
+      const axes = new THREE.AxesHelper(1.8);
+      scene.add(axes);
+
+      // Lumières
+      scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+      const key = new THREE.DirectionalLight(0xffffff, 1.0);
+      key.position.set(4, 6, 3);
+      key.castShadow = false;
+      scene.add(key);
+
+      const rim = new THREE.DirectionalLight(0x7aa6ff, 0.55);
+      rim.position.set(-5, 2.5, -4);
+      scene.add(rim);
+
+      // Cube (matériau “propre”)
+      const geometry = new THREE.BoxGeometry(1.6, 1.6, 1.6);
+      const material = new THREE.MeshStandardMaterial({
+        color: 0x7c5cff,
+        metalness: 0.15,
+        roughness: 0.25,
+      });
+      const cube = new THREE.Mesh(geometry, material);
+      scene.add(cube);
+
+      // Liseré
+      const edges = new THREE.EdgesGeometry(geometry, 15);
+      const line = new THREE.LineSegments(
+        edges,
+        new THREE.LineBasicMaterial({ color: 0xdbe7ff, transparent: true, opacity: 0.75 }),
+      );
+      cube.add(line);
+
+      function resize() {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }
+      window.addEventListener("resize", resize);
+      resize();
+
+      function resetCamera() {
+        camera.position.copy(initialCameraPos);
+        controls.target.set(0, 0, 0);
+        controls.update();
+      }
+
+      function setView(pos) {
+        camera.position.copy(pos);
+        controls.target.set(0, 0, 0);
+        controls.update();
+      }
+
+      document.getElementById("reset").addEventListener("click", resetCamera);
+      document.getElementById("viewIso").addEventListener("click", () => setView(new THREE.Vector3(3.2, 2.2, 4.2)));
+      document.getElementById("viewFront").addEventListener("click", () => setView(new THREE.Vector3(0, 0, 5.2)));
+      document.getElementById("viewTop").addEventListener("click", () => setView(new THREE.Vector3(0, 6.2, 0.001)));
+
+      // Feature 1: réglages matériaux/couleur
+      const colorInput = document.getElementById("color");
+      const roughnessInput = document.getElementById("roughness");
+      const metalnessInput = document.getElementById("metalness");
+      const autorotateInput = document.getElementById("autorotate");
+
+      function hexToInt(hex) {
+        return parseInt(hex.replace("#", "0x"), 16);
+      }
+
+      colorInput.addEventListener("input", () => {
+        material.color.setHex(hexToInt(colorInput.value));
+      });
+      roughnessInput.addEventListener("input", () => {
+        material.roughness = Number(roughnessInput.value);
+        material.needsUpdate = true;
+      });
+      metalnessInput.addEventListener("input", () => {
+        material.metalness = Number(metalnessInput.value);
+        material.needsUpdate = true;
+      });
+
+      // Feature 2: screenshot
+      document.getElementById("shot").addEventListener("click", () => {
+        renderer.render(scene, camera);
+        const a = document.createElement("a");
+        a.download = "cube3d.png";
+        a.href = renderer.domElement.toDataURL("image/png");
+        a.click();
+      });
+
+      window.addEventListener("keydown", (e) => {
+        if (e.key.toLowerCase() === "r") resetCamera();
+      });
+
+      let last = performance.now();
+      let fpsAvg = 0;
+      function animate(now) {
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+
+        // Feature 3: auto-rotate (toggle UI)
+        const autoRotateOn = !!autorotateInput.checked;
+        if (autoRotateOn && !controls.dragging) {
+          cube.rotation.y += dt * 0.35;
+          cube.rotation.x += dt * 0.12;
+        }
+
+        controls.update();
+        renderer.render(scene, camera);
+
+        // petit status FPS + aide si écran vide
+        const fps = dt > 0 ? 1 / dt : 0;
+        fpsAvg = fpsAvg ? fpsAvg * 0.9 + fps * 0.1 : fps;
+        if (now < 2500) {
+          showStatus(
+            `<strong>OK</strong> — FPS ~ ${fpsAvg.toFixed(0)}<br/>Si tu ne vois toujours rien: teste Chrome/Edge et autorise WebGL.`,
+          );
+        } else {
+          statusEl.classList.add("hidden");
+        }
+        requestAnimationFrame(animate);
+      }
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>
