@@ -2,7 +2,7 @@ import websocket
 import threading
 import uuid
 
-SERVER_URL = "ws://localhost:3000"
+SERVER_URL =("wss://serveur-websocket.onrender.com")
 CLIENT_ID = f"Client2-{uuid.uuid4().hex[:6]}"
 
 stop_event = threading.Event()
