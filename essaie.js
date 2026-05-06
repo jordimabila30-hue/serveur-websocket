@@ -1,43 +1,86 @@
-const WebSocket = require('ws');
-const http = require('http');
+const http = require("http");
+const { WebSocketServer } = require("ws");
 
 const port = process.env.PORT || 3000;
 
 const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end("Server is running");
+  res.writeHead(200);
+  res.end("WebSocket server alive");
 });
 
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocketServer({
+  server,
+  perMessageDeflate: false,
+});
 
-let clients = [];
+console.log("🚀 Server starting...");
 
-wss.on('connection', (ws) => {
-  console.log("Client connecté");
+// ========================
+// 🧠 HEARTBEAT SYSTEM
+// ========================
+function heartbeat() {
+  this.isAlive = true;
+}
 
-  clients.push(ws);
+// ========================
+// 🔌 CONNECTION
+// ========================
+wss.on("connection", (ws) => {
+  console.log("🟢 Client connecté");
 
-  ws.on('message', (data) => {
-    const msg = data.toString();
-    console.log("Reçu :", msg);
+  ws.isAlive = true;
+  ws.on("pong", heartbeat);
 
-    clients.forEach(client => {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
+  // welcome message
+  ws.send("SYSTEM: connected");
+
+  ws.on("message", (data) => {
+    const msg = data.toString().trim();
+
+    if (!msg) return;
+    if (msg === "PING") return;
+    if (msg.startsWith("SYSTEM:")) return;
+
+    console.log("📩 Reçu :", msg);
+
+    // broadcast clean
+    wss.clients.forEach((client) => {
+      if (client.readyState === 1) {
         client.send(msg);
       }
     });
   });
 
-  ws.on('close', () => {
-    console.log("Client déconnecté");
-    clients = clients.filter(c => c !== ws);
+  ws.on("close", () => {
+    console.log("🔴 Client déconnecté");
   });
 
-  ws.on('error', (err) => {
-    console.log("Erreur socket:", err);
+  ws.on("error", (err) => {
+    console.log("⚠️ Erreur:", err.message);
   });
 });
 
-server.listen(port, '0.0.0.0', () => {
-  console.log("Serveur lancé sur le port", port);
+// ========================
+// 🫀 KEEP ALIVE (IMPORTANT)
+// ========================
+const interval = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) {
+      console.log("💀 Client mort supprimé");
+      return ws.terminate();
+    }
+
+    ws.isAlive = false;
+    ws.ping(); // WebSocket natif ping (IMPORTANT)
+  });
+}, 30000);
+
+// cleanup
+wss.on("close", () => clearInterval(interval));
+
+// ========================
+// 🚀 START
+// ========================
+server.listen(port, "0.0.0.0", () => {
+  console.log(`🌍 Server running on port ${port}`);
 });

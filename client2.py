@@ -1,65 +1,61 @@
 import websocket
 import threading
-import uuid
 import time
+import uuid
 
-SERVER_URL ="ws://localhost:3000"
-CLIENT_ID = f"Client2-{uuid.uuid4().hex[:6]}"
+SERVER_URL = "wss://serveur-websocket-1.onrender.com"
+CLIENT_ID = f"RECEIVER-{uuid.uuid4().hex[:6]}"
 
 stop_event = threading.Event()
 
+
+# ========================
+# 📡 EVENTS
+# ========================
 def on_message(ws, message):
-    print(f"\n{message}\n[{CLIENT_ID}] > ", end="", flush=True)
+    print(f"\n📩 MESSAGE REÇU → {message}")
+
 
 def on_error(ws, error):
-    print(f"\n[{CLIENT_ID}] Erreur: {error}", flush=True)
+    print(f"\n❌ ERREUR → {error}")
 
-def on_close(ws, close_status_code, close_msg):
-    print(f"\n[{CLIENT_ID}] Déconnecté", flush=True)
-    stop_event.set()
+
+def on_close(ws, code, msg):
+    print("\n🔌 Déconnecté (reconnexion...)")
+
 
 def on_open(ws):
-    print(f"[{CLIENT_ID}] Connecté au serveur", flush=True)
+    print(f"\n🟢 {CLIENT_ID} connecté et en écoute temps réel")
+    ws.send(f"SYSTEM: {CLIENT_ID} listener online")
 
-def receive_loop(ws):
-    ws.run_forever(
-        ping_interval=20,
-        ping_timeout=10
-    )
 
-def main():
-    ws = websocket.WebSocketApp(
-        SERVER_URL,
-        on_open=on_open,
-        on_message=on_message,
-        on_error=on_error,
-        on_close=on_close
-    )
-
-    t = threading.Thread(target=receive_loop, args=(ws,), daemon=True)
-    t.start()
-
-    # laisse le temps de connexion
-    time.sleep(1)
+# ========================
+# 🔁 RUN + RECONNECT
+# ========================
+def run():
 
     while not stop_event.is_set():
         try:
-            msg = input(f"[{CLIENT_ID}] > ").strip()
+            ws = websocket.WebSocketApp(
+                SERVER_URL,
+                on_open=on_open,
+                on_message=on_message,
+                on_error=on_error,
+                on_close=on_close
+            )
 
-            if not msg:
-                continue
+            ws.run_forever(
+                ping_interval=20,
+                ping_timeout=10
+            )
 
-            if msg.lower() in ("exit", "quit"):
-                stop_event.set()
-                ws.close()
-                break
+        except Exception as e:
+            print("⚠️ Reconnexion après erreur:", e)
+            time.sleep(2)
 
-            ws.send(f"{CLIENT_ID}: {msg}")
 
-        except (KeyboardInterrupt, EOFError):
-            stop_event.set()
-            ws.close()
-            break
-
+# ========================
+# 🚀 START
+# ========================
 if __name__ == "__main__":
-    main()
+    run()
