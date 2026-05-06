@@ -3,7 +3,7 @@ import threading
 import uuid
 import time
 
-SERVER_URL = "wss://serveur-websocket-production.up.railway.app"
+SERVER_URL = "ws://localhost:3000"
 CLIENT_ID = f"Client1-{uuid.uuid4().hex[:6]}"
 
 stop_event = threading.Event()
